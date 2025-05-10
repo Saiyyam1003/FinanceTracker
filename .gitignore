@@ -1,0 +1,18 @@
+# Maven
+target/
+*.class
+
+# React Native
+node_modules/
+*.lock
+.expo/
+dist/
+build/
+
+# IDE
+.vscode/
+*.code-workspace
+
+# Misc
+*.log
+.plan/
