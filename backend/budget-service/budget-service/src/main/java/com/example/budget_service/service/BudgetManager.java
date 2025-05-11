@@ -21,21 +21,28 @@ public class BudgetManager {
     private final TransactionProcessor transactionProcessor;
 
     @Autowired
-    public BudgetManager(BudgetRepository repository, BillProcessor billProcessor,
-            TransactionProcessor transactionProcessor) {
+    public BudgetManager(BudgetRepository repository, BillProcessor billProcessor, TransactionProcessor transactionProcessor) {
         this.repository = repository;
         this.billProcessor = billProcessor;
         this.transactionProcessor = transactionProcessor;
     }
 
     public Budget createBudget(BudgetDTO dto) {
-        logger.debug("Creating budget for period: {} to {}", dto.getPeriodStart(), dto.getPeriodEnd());
+        logger.debug("Creating budget for startDate: {}", dto.getStartDate());
         validateBudgetDTO(dto);
+
+        LocalDate periodStart = dto.getStartDate().withDayOfMonth(1);
+        LocalDate periodEnd = periodStart.withDayOfMonth(periodStart.lengthOfMonth());
+
+        // Check for existing budget
+        if (repository.findByPeriodStart(periodStart).isPresent()) {
+            throw new IllegalArgumentException("Budget already exists for " + periodStart.getMonth() + " " + periodStart.getYear());
+        }
 
         Budget budget = new Budget();
         budget.setBudgetAmount(dto.getBudgetAmount());
-        budget.setPeriodStart(dto.getPeriodStart());
-        budget.setPeriodEnd(dto.getPeriodEnd());
+        budget.setPeriodStart(periodStart);
+        budget.setPeriodEnd(periodEnd);
         budget.setRemainingFunds(dto.getBudgetAmount());
         budget.setOverflowFund(0.0);
         budget.setPreviousNegativeBalance(0.0);
@@ -46,17 +53,35 @@ public class BudgetManager {
         return saved;
     }
 
-    public Budget updateBudget(Long id, BudgetDTO dto) {
-        logger.debug("Updating budget ID: {}", id);
+    public Budget updateBudget(LocalDate startDate, BudgetDTO dto) {
+        logger.debug("Updating budget for startDate: {}", startDate);
         validateBudgetDTO(dto);
 
-        Budget budget = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Budget not found with ID: " + id));
+        LocalDate periodStart = startDate.withDayOfMonth(1);
+        Budget budget = repository.findByPeriodStart(periodStart)
+                .orElseThrow(() -> new IllegalArgumentException("Budget not found for " + periodStart));
         budget.setBudgetAmount(dto.getBudgetAmount());
         resetBudgetForPeriod(budget);
         Budget updated = repository.save(budget);
-        logger.info("Budget ID: {} updated", id);
+        logger.info("Budget updated for period starting on {}", periodStart);
         return updated;
+    }
+
+    public void deleteBudget(LocalDate startDate) {
+        logger.debug("Deleting budget for startDate: {}", startDate);
+        LocalDate periodStart = startDate.withDayOfMonth(1);
+        Budget budget = repository.findByPeriodStart(periodStart)
+                .orElseThrow(() -> new IllegalArgumentException("Budget not found for " + periodStart));
+        repository.delete(budget);
+        logger.info("Budget deleted for period starting on {}", periodStart);
+    }
+
+    public Budget getBudget(LocalDate startDate) {
+        LocalDate periodStart = startDate.withDayOfMonth(1);
+        Budget budget = repository.findByPeriodStart(periodStart)
+                .orElseThrow(() -> new IllegalArgumentException("Budget not found for " + periodStart));
+        resetBudgetForPeriod(budget);
+        return budget;
     }
 
     public List<Budget> getAllBudgets() {
@@ -82,19 +107,23 @@ public class BudgetManager {
         }
 
         double totalBills = billProcessor.fetchUpcomingBills(budget.getPeriodStart(), budget.getPeriodEnd());
-        double totalTransactions = transactionProcessor.fetchTransactions(budget.getPeriodStart(),
-                budget.getPeriodEnd());
-        budget.setRemainingFunds(
-                budget.getBudgetAmount() - totalBills - totalTransactions - budget.getPreviousNegativeBalance());
+        double totalTransactions = transactionProcessor.fetchTransactions(budget.getPeriodStart(), budget.getPeriodEnd());
+        budget.setRemainingFunds(budget.getBudgetAmount() - totalBills - totalTransactions - budget.getPreviousNegativeBalance());
         budget.setPreviousNegativeBalance(0.0);
-        logger.debug("Budget reset: bills={}, transactions={}, remainingFunds={}", totalBills, totalTransactions,
-                budget.getRemainingFunds());
+
+        // Notification for 80% completion
+        if (budget.getRemainingFunds() < 0.2 * budget.getBudgetAmount()) {
+            logger.info("Notification: Budget for period {} to {} is nearing completion. Remaining funds: {}",
+                    budget.getPeriodStart(), budget.getPeriodEnd(), budget.getRemainingFunds());
+        }
+
+        logger.debug("Budget reset: bills={}, transactions={}, remainingFunds={}", totalBills, totalTransactions, budget.getRemainingFunds());
         return repository.save(budget);
     }
 
     public Budget findCurrentBudget(LocalDate date) {
         LocalDate periodStart = date.withDayOfMonth(1);
-        LocalDate periodEnd = date.withDayOfMonth(date.lengthOfMonth());
+        LocalDate periodEnd = periodStart.withDayOfMonth(periodStart.lengthOfMonth());
         logger.debug("Searching for budget with period: {} to {}", periodStart, periodEnd);
         return repository.findByPeriodStartAndPeriodEnd(periodStart, periodEnd)
                 .map(this::resetBudgetForPeriod)
@@ -105,11 +134,8 @@ public class BudgetManager {
         if (dto.getBudgetAmount() <= 0) {
             throw new IllegalArgumentException("Budget amount must be positive");
         }
-        if (dto.getPeriodStart() == null || dto.getPeriodEnd() == null) {
-            throw new IllegalArgumentException("Period start and end dates are required");
-        }
-        if (dto.getPeriodStart().isAfter(dto.getPeriodEnd())) {
-            throw new IllegalArgumentException("Period start must be before period end");
+        if (dto.getStartDate() == null) {
+            throw new IllegalArgumentException("Start date is required");
         }
     }
 }

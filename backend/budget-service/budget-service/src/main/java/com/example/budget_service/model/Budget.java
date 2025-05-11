@@ -1,13 +1,10 @@
 package com.example.budget_service.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = "periodStart"))
 public class Budget {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,6 +16,7 @@ public class Budget {
     private LocalDate periodStart;
     private LocalDate periodEnd;
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }

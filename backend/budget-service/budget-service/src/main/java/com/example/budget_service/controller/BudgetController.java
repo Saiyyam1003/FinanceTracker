@@ -6,10 +6,12 @@ import com.example.budget_service.service.BudgetManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -31,11 +33,21 @@ public class BudgetController {
         return new ResponseEntity<>(createdBudget, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Budget> updateBudget(@PathVariable Long id, @RequestBody BudgetDTO budgetDTO) {
-        logger.debug("Received update budget request for ID: {}", id);
-        Budget updatedBudget = budgetManager.updateBudget(id, budgetDTO);
+    @PutMapping("/{startDate}")
+    public ResponseEntity<Budget> updateBudget(
+            @PathVariable("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestBody BudgetDTO budgetDTO) {
+        logger.debug("Received update budget request for startDate: {}", startDate);
+        Budget updatedBudget = budgetManager.updateBudget(startDate, budgetDTO);
         return new ResponseEntity<>(updatedBudget, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{startDate}")
+    public ResponseEntity<Void> deleteBudget(
+            @PathVariable("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate) {
+        logger.debug("Received delete budget request for startDate: {}", startDate);
+        budgetManager.deleteBudget(startDate);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping
@@ -43,5 +55,13 @@ public class BudgetController {
         logger.debug("Received get all budgets request");
         List<Budget> budgets = budgetManager.getAllBudgets();
         return new ResponseEntity<>(budgets, HttpStatus.OK);
+    }
+
+    @GetMapping("/{startDate}")
+    public ResponseEntity<Budget> getBudget(
+            @PathVariable("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate) {
+        logger.debug("Received get budget request for startDate: {}", startDate);
+        Budget budget = budgetManager.getBudget(startDate);
+        return new ResponseEntity<>(budget, HttpStatus.OK);
     }
 }

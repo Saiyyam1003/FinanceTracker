@@ -1,17 +1,10 @@
 package com.example.budget_service.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.time.LocalDate;
 
 public class BudgetDTO {
     private double budgetAmount;
-
-    @JsonProperty("startDate")
-    private LocalDate periodStart;
-
-    @JsonProperty("endDate")
-    private LocalDate periodEnd;
+    private LocalDate startDate;
 
     public double getBudgetAmount() {
         return budgetAmount;
@@ -21,19 +14,11 @@ public class BudgetDTO {
         this.budgetAmount = budgetAmount;
     }
 
-    public LocalDate getPeriodStart() {
-        return periodStart;
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
-    public void setPeriodStart(LocalDate periodStart) {
-        this.periodStart = periodStart;
-    }
-
-    public LocalDate getPeriodEnd() {
-        return periodEnd;
-    }
-
-    public void setPeriodEnd(LocalDate periodEnd) {
-        this.periodEnd = periodEnd;
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
     }
 }
