@@ -21,9 +21,9 @@ public class BillController {
         return service.createBill(dto);
     }
 
-    @PatchMapping("/{id}/payment")
-    public Bill updateBillPayment(@PathVariable Long id, @RequestBody boolean paid) {
-        return service.updateBillPayment(id, paid);
+    @PatchMapping("/{id}/paid")
+    public Bill markBillPaid(@PathVariable Long id) {
+        return service.markBillPaid(id);
     }
 
     @GetMapping
