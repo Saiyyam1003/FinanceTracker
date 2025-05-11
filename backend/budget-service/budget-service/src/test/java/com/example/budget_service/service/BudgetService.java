@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -40,10 +41,15 @@ public class BudgetService {
         budget.setOverflowFund(0.0);
         budget.setPreviousNegativeBalance(0.0);
 
-        resetBudgetForPeriod(budget);
-        Budget saved = repository.save(budget);
-        logger.info("Budget created with ID: {}", saved.getId());
-        return saved;
+        try {
+            resetBudgetForPeriod(budget);
+            Budget saved = repository.save(budget);
+            logger.info("Budget created with ID: {}", saved.getId());
+            return saved;
+        } catch (Exception e) {
+            logger.error("Failed to create budget: {}", e.getMessage(), e);
+            throw new RuntimeException("Unable to create budget", e);
+        }
     }
 
     public Budget updateBudget(Long id, BudgetDTO dto) {
@@ -53,10 +59,15 @@ public class BudgetService {
         Budget budget = repository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Budget not found with ID: " + id));
         budget.setBudgetAmount(dto.getBudgetAmount());
-        resetBudgetForPeriod(budget);
-        Budget updated = repository.save(budget);
-        logger.info("Budget ID: {} updated", id);
-        return updated;
+        try {
+            resetBudgetForPeriod(budget);
+            Budget updated = repository.save(budget);
+            logger.info("Budget ID: {} updated", id);
+            return updated;
+        } catch (Exception e) {
+            logger.error("Failed to update budget ID: {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Unable to update budget", e);
+        }
     }
 
     public Budget processTransaction(Object transaction) {
@@ -69,19 +80,25 @@ public class BudgetService {
             throw new IllegalStateException("No budget found for date: " + transactionDate);
         }
 
-        double transactionAmount = getTransactionAmount(transaction);
-        double newRemaining = budget.getRemainingFunds() - transactionAmount;
-        if (newRemaining <= 0) {
-            double deficit = -newRemaining;
-            if (budget.getOverflowFund() >= deficit) {
-                budget.setOverflowFund(budget.getOverflowFund() - deficit);
-                newRemaining = 0;
+        try {
+            double transactionAmount = getTransactionAmount(transaction);
+            double newRemaining = budget.getRemainingFunds() - transactionAmount;
+            if (newRemaining <= 0) {
+                double deficit = -newRemaining;
+                if (budget.getOverflowFund() >= deficit) {
+                    budget.setOverflowFund(budget.getOverflowFund() - deficit);
+                    newRemaining = 0;
+                }
             }
+            budget.setRemainingFunds(newRemaining);
+            Budget updated = repository.save(budget);
+            logger.info("Transaction processed, budget ID: {}, remainingFunds: {}", updated.getId(),
+                    updated.getRemainingFunds());
+            return updated;
+        } catch (Exception e) {
+            logger.error("Failed to process transaction: {}", e.getMessage(), e);
+            throw new RuntimeException("Unable to process transaction", e);
         }
-        budget.setRemainingFunds(newRemaining);
-        Budget updated = repository.save(budget);
-        logger.info("Transaction processed, budget ID: {}, remainingFunds: {}", updated.getId(), updated.getRemainingFunds());
-        return updated;
     }
 
     public Budget resetBudgetForPeriod(Budget budget) {
@@ -107,17 +124,27 @@ public class BudgetService {
 
     private double fetchUpcomingBills(LocalDate start, LocalDate end) {
         String url = BILL_SERVICE_URL + "?start=" + start + "&end=" + end;
-        BillDTO[] bills = restTemplate.getForObject(url, BillDTO[].class);
-        double total = 0.0;
-        if (bills != null) {
-            for (Object bill : bills) {
-                if (!isBillPaid(bill)) {
-                    total += getBillAmount(bill);
+        try {
+            BillDTO[] bills = restTemplate.getForObject(url, BillDTO[].class);
+            if (bills == null || bills.length == 0) {
+                logger.debug("No bills found for period {} to {}", start, end);
+                return 0.0;
+            }
+            double total = 0.0;
+            for (BillDTO bill : bills) {
+                if (!bill.isPaid()) {
+                    total += bill.getAmount();
                 }
             }
+            logger.debug("Fetched bills total: {} for period {} to {}", total, start, end);
+            return total;
+        } catch (RestClientException e) {
+            logger.warn("Bill service unavailable at {}: {}. Assuming no bills.", url, e.getMessage());
+            return 0.0;
+        } catch (Exception e) {
+            logger.error("Unexpected error fetching bills: {}", e.getMessage(), e);
+            return 0.0;
         }
-        logger.debug("Fetched bills total: {} for period {} to {}", total, start, end);
-        return total;
     }
 
     private Budget findCurrentBudget(LocalDate date) {
@@ -130,9 +157,14 @@ public class BudgetService {
 
     public List<Budget> getAllBudgets() {
         logger.debug("Fetching all budgets");
-        List<Budget> budgets = repository.findAll();
-        budgets.forEach(this::resetBudgetForPeriod);
-        return budgets;
+        try {
+            List<Budget> budgets = repository.findAll();
+            budgets.forEach(this::resetBudgetForPeriod);
+            return budgets;
+        } catch (Exception e) {
+            logger.error("Failed to fetch budgets: {}", e.getMessage(), e);
+            throw new RuntimeException("Unable to fetch budgets", e);
+        }
     }
 
     private void validateBudgetDTO(BudgetDTO dto) {
@@ -180,22 +212,6 @@ public class BudgetService {
             return (String) transaction.getClass().getMethod("getCategory").invoke(transaction);
         } catch (Exception e) {
             throw new IllegalArgumentException("Unable to retrieve transaction category", e);
-        }
-    }
-
-    private double getBillAmount(Object bill) {
-        try {
-            return ((Number) bill.getClass().getMethod("getAmount").invoke(bill)).doubleValue();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Unable to retrieve bill amount", e);
-        }
-    }
-
-    private boolean isBillPaid(Object bill) {
-        try {
-            return (Boolean) bill.getClass().getMethod("isPaid").invoke(bill);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Unable to retrieve bill paid status", e);
         }
     }
 }

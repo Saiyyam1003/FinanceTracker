@@ -1,43 +1,39 @@
 package com.example.budget_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDate;
 
 public class BudgetDTO {
-    private String categoryId;
-    private double amount;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private double budgetAmount;
 
-    // Getters and Setters
-    public String getCategoryId() {
-        return categoryId;
+    @JsonProperty("startDate")
+    private LocalDate periodStart;
+
+    @JsonProperty("endDate")
+    private LocalDate periodEnd;
+
+    public double getBudgetAmount() {
+        return budgetAmount;
     }
 
-    public void setCategoryId(String categoryId) {
-        this.categoryId = categoryId;
+    public void setBudgetAmount(double budgetAmount) {
+        this.budgetAmount = budgetAmount;
     }
 
-    public double getAmount() {
-        return amount;
+    public LocalDate getPeriodStart() {
+        return periodStart;
     }
 
-    public void setAmount(double amount) {
-        this.amount = amount;
+    public void setPeriodStart(LocalDate periodStart) {
+        this.periodStart = periodStart;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
+    public LocalDate getPeriodEnd() {
+        return periodEnd;
     }
 
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
+    public void setPeriodEnd(LocalDate periodEnd) {
+        this.periodEnd = periodEnd;
     }
 }

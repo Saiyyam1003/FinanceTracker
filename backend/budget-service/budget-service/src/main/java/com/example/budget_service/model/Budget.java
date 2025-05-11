@@ -1,6 +1,10 @@
 package com.example.budget_service.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
 import java.time.LocalDate;
 
 @Entity
@@ -8,12 +12,13 @@ public class Budget {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String categoryId;
-    private double amount;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private double budgetAmount;
+    private double remainingFunds;
+    private double overflowFund;
+    private double previousNegativeBalance;
+    private LocalDate periodStart;
+    private LocalDate periodEnd;
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -22,35 +27,51 @@ public class Budget {
         this.id = id;
     }
 
-    public String getCategoryId() {
-        return categoryId;
+    public double getBudgetAmount() {
+        return budgetAmount;
     }
 
-    public void setCategoryId(String categoryId) {
-        this.categoryId = categoryId;
+    public void setBudgetAmount(double budgetAmount) {
+        this.budgetAmount = budgetAmount;
     }
 
-    public double getAmount() {
-        return amount;
+    public double getRemainingFunds() {
+        return remainingFunds;
     }
 
-    public void setAmount(double amount) {
-        this.amount = amount;
+    public void setRemainingFunds(double remainingFunds) {
+        this.remainingFunds = remainingFunds;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
+    public double getOverflowFund() {
+        return overflowFund;
     }
 
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
+    public void setOverflowFund(double overflowFund) {
+        this.overflowFund = overflowFund;
     }
 
-    public LocalDate getEndDate() {
-        return endDate;
+    public double getPreviousNegativeBalance() {
+        return previousNegativeBalance;
     }
 
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
+    public void setPreviousNegativeBalance(double previousNegativeBalance) {
+        this.previousNegativeBalance = previousNegativeBalance;
+    }
+
+    public LocalDate getPeriodStart() {
+        return periodStart;
+    }
+
+    public void setPeriodStart(LocalDate periodStart) {
+        this.periodStart = periodStart;
+    }
+
+    public LocalDate getPeriodEnd() {
+        return periodEnd;
+    }
+
+    public void setPeriodEnd(LocalDate periodEnd) {
+        this.periodEnd = periodEnd;
     }
 }
