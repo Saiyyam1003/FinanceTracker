@@ -15,4 +15,5 @@ build/
 
 # Misc
 *.log
-.plan/
+plan.txt
+requests.http

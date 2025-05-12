@@ -1,0 +1,74 @@
+# POST http://localhost:8081/api/transactions
+# Content-Type: application/json
+
+# {
+#     "amount": 400.0,
+#     "merchant": "Zmazon",
+#     "category": "Food"
+# }
+
+# ###
+
+# GET http://localhost:8081/api/transactions
+
+
+
+GET http://localhost:8084/api/analytics/summary?startDate=2025-05-01&endDate=2025-05-31
+
+
+
+
+# POST http://localhost:8082/api/budgets 
+# Content-Type: application/json
+
+# {
+#     "budgetAmount": 5000.0,
+#     "startDate": "2025-05-04"
+# }
+
+# ###
+
+
+# GET http://localhost:8082/api/budgets
+
+# DELETE http://localhost:8082/api/budgets/2025-05-01 
+
+
+# POST http://localhost:8083/api/bills
+# Content-Type: application/json
+
+# {
+#     "amount": 200.0,
+#     "payee": "Electric Co",
+#     "dueDate": "2025-05-20",
+#     "billType": "RECURRING",
+#     "recurrencePeriodDays": 30,
+#     "notificationEnabled": true,
+#     "paid": false
+# }
+
+###
+#PATCH http://localhost:8083/api/bills/1/paid
+
+# ###
+
+POST http://localhost:8083/api/bills
+Content-Type: application/json
+
+{
+    "amount": 50.0,
+    "payee": "Repair Shop",
+    "dueDate": "2025-05-08",
+    "billType": "ONE_TIME",
+    "recurrencePeriodDays": null,
+    "notificationEnabled": true,
+    "paid": true
+}
+
+# ###
+
+# PATCH http://localhost:8083/api/bills/2/paid
+
+# ###
+
+GET http://localhost:8083/api/bills
